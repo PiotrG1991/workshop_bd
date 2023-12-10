@@ -1,11 +1,12 @@
-from bcrypt import hash_password
+from clcrypto import hash_password
+from create_db import cursor
+
 
 class users:
     def __init__(self, username=" ", password=" ", salt=None):
         self._id = -1
         self._username = username
         self._hashed_password = hash_password(password, salt)
-
 
     @property
     def id(self):
@@ -17,6 +18,7 @@ class users:
 
     def set_password(self, password, salt=""):
         self._hashed_password = hash_password(password, salt)
+
     @hashed_password.setter
     def hashed_password(self, password):
         self.set_password(password)
@@ -61,14 +63,14 @@ class users:
     def load_all_users(cursor):
         sql = "SELECT id, username, hashed_password FROM users"
         cursor.execute(sql)
-        users = []
+        user_s = []
         for row in cursor.fetchall():
             id_, username, hashed_password = row
             loaded_user = users
             loaded_user._id = id_
             loaded_user.username = username
             loaded_user._hashed_password = hashed_password
-            users.append(loaded_user)
+            user_s.append(loaded_user)
         return users
 
     def delete(self, cursor):
@@ -85,41 +87,41 @@ class messages:
         self.text = text
         self._creation_date = None
 
-        @property
-        def creation_date(self):
-            return self._creation_date
+    @property
+    def creation_date(self):
+        return self._creation_date
 
-        @property
-        def id(self):
-            return self._id
+    @property
+    def id(self):
+        return self._id
 
-        @staticmethod
-        def load_all_messages(cursor, user_id=None):
-            if user_id:
-                sql = "SELECT id, from_id, to_id, text, creation_date FROM messages WHERE to_id=%s"
-                cursor.execute(sql, (user_id,))
-            else:
-                sql = "SELECT id, from_id, to_id, text, creation_date FROM messages"
-                cursor.execute(sql)
-            messages = []
-            for row in cursor.fetchall():
-                id_, from_id, to_id, text, creation_date = row
-                loaded_message = Message(from_id, to_id, text)
-                loaded_message._id = id_
-                loaded_message._creation_date = creation_date
-                messages.append(loaded_message)
-            return messages
+    @staticmethod
+    def load_all_messages(cursor, user_id=None):
+        if user_id:
+            sql = "SELECT id, from_id, to_id, text, creation_date FROM messages WHERE to_id=%s"
+            cursor.execute(sql, (user_id,))
+        else:
+            sql = "SELECT id, from_id, to_id, text, creation_date FROM messages"
+            cursor.execute(sql)
+        message_s = []
+        for row in cursor.fetchall():
+            id_, from_id, to_id, text, creation_date = row
+            loaded_message = messages(from_id, to_id, text)
+            loaded_message._id = id_
+            loaded_message._creation_date = creation_date
+            message_s.append(loaded_message)
+            return message_s
 
-        def save_to_db(cursor):
-            if self._id == -1:
-                sql = """ INSERT INTO messages(from_id, to_id, text) 
-                VALUES (%s, %s, %s) RETURNING  id, creation_date"""
-                values = (self.from_id, self.to_id, self.text)
-                cursor.execute(sql, values)
-                self._id, self._creation_date = cursor.fetchone()
-                return True
-            else:
-                sql = """UPDATE messages SET to_id = %s, text = %s WHERE id = %s"""
-                values = (self.from_id, self.to_id, self.text, self._id)
-                cursor.execute(sql, values)
-                return True
+    def save_to_db(self, cursor):
+        if self.id == -1:
+            sql = """ INSERT INTO messages(from_id, to_id, text) 
+            VALUES (%s, %s, %s) RETURNING  id, creation_date"""
+            values = (self.from_id, self.to_id, self.text)
+            cursor.execute(sql, values)
+            self._id, self._creation_date = cursor.fetchone()
+            return True
+        else:
+            sql = """UPDATE messages SET to_id = %s, text = %s WHERE id = %s"""
+            values = (self.from_id, self.to_id, self.text, self._id)
+            cursor.execute(sql, values)
+            return True
